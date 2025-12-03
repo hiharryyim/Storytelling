@@ -169,48 +169,124 @@ if page == "Overview":
     st.markdown("---")
     # ... (Overview 页面之前的代码) ...
 
-    # --- 地图可视化部分 ---
-    st.markdown("---")
-    st.subheader("📍 Geographic Distribution of Listings")
-    st.caption("Detailed map of listings. Color represents Price intensity.")
+# ... (前面的代码保持不变) ...
+    st.subheader("📍 Geographic Strategy Map")
+    st.caption("Filter by Quadrant Category to spot opportunities. Map style is minimal for clarity.")
 
-    # 检查经纬度列是否存在，防止报错
     if "latitude" in df_overview.columns and "longitude" in df_overview.columns:
         
-        # 使用 Plotly Mapbox (不需要 API Key 的方案)
-        fig_map = px.scatter_mapbox(
-            df_overview, 
-            lat="latitude", 
-            lon="longitude", 
-            color="price",                  # 颜色深浅代表价格
-            size="price",                   # 点的大小也代表价格
-            size_max=12,                    # 限制最大点的大小，防止遮挡
-            hover_name="id",                # 鼠标悬停显示 ID
-            # 悬停显示更多关键信息：残差、房型、评分
-            hover_data={
-                "latitude": False, 
-                "longitude": False,
-                "room_type": True,
-                "price": True,
-                "residual": True,           # 核心商业指标
-                "rating": True
-            },
-            color_continuous_scale="Jet",   # 使用鲜艳的色阶 (Jet 或 Viridis)
-            zoom=10, 
-            height=600
-        )
+        # 1. 统一构建分类列 (基于现有的 RPI 和 EI)
+        # 确保我们使用正确的列名 (之前定义的 rpi_col)
+        target_rpi_col = rpi_col if rpi_col else "RPI"
+        
+        def get_quadrant(row):
+            r = row.get(target_rpi_col, 0)
+            e = row.get("EI", 0)
+            # 这里严格沿用之前的四象限定义
+            if r < 0 and e >= 0.5:
+                return "💎 Hidden Gem"  # 低溢价，高曝光
+            elif r >= 0 and e >= 0.5:
+                return "🔥 Hot Spot"    # 高溢价，高曝光
+            elif r >= 0 and e < 0.5:
+                return "⚠️ Overhyped"   # 高溢价，低曝光
+            else:
+                return "❄️ Cold Zone"   # 低溢价，低曝光
 
-        # 设置地图样式为 OpenStreetMap (无需 Token，加载快)
-        fig_map.update_layout(
-            mapbox_style="open-street-map", 
-            margin={"r":0,"t":0,"l":0,"b":0}
-        )
+        # 创建用于绘图的临时 DataFrame
+        plot_df = df_overview.copy()
+        plot_df["Quadrant"] = plot_df.apply(get_quadrant, axis=1)
+        
+        # 计算性价比得分 (Value Score) 以备后用
+        plot_df["Value Score"] = (plot_df["rating"] / plot_df["price"].replace(0, 1)) * 100
 
-        st.plotly_chart(fig_map, use_container_width=True)
-    
+        # --- 新功能: 象限筛选器 ---
+        # 默认全选
+        all_quadrants = ["💎 Hidden Gem", "🔥 Hot Spot", "⚠️ Overhyped", "❄️ Cold Zone"]
+        
+        col_filter, col_color = st.columns([1, 1])
+        
+        with col_filter:
+            selected_quadrants = st.multiselect(
+                "Filter by Strategy Quadrant:",
+                options=all_quadrants,
+                default=all_quadrants, # 默认显示所有
+                help="Select specific categories to isolate on the map."
+            )
+        
+        with col_color:
+            map_mode = st.selectbox(
+                "Color points by:",
+                ["Quadrant Category", "Price ($)", "Value Score (Rating/Price)"],
+                help="Choose what the color of the dots represents."
+            )
+
+        # 2. 根据筛选结果过滤数据
+        filtered_map_df = plot_df[plot_df["Quadrant"].isin(selected_quadrants)]
+
+        if filtered_map_df.empty:
+            st.warning("No listings match the selected filters.")
+        else:
+            # 3. 设置绘图参数
+            if map_mode == "Quadrant Category":
+                color_col = "Quadrant"
+                # 统一颜色映射
+                color_map = {
+                    "💎 Hidden Gem": "#00CC96",  
+                    "🔥 Hot Spot": "#EF553B",    
+                    "⚠️ Overhyped": "#FFA15A",   
+                    "❄️ Cold Zone": "#636EFA"    
+                }
+                scale = None
+            elif map_mode == "Price ($)":
+                color_col = "price"
+                color_map = None
+                scale = "Jet"
+            else: # Value Score
+                color_col = "Value Score"
+                color_map = None
+                scale = "Viridis_r" # 亮色代表高分
+
+            # 4. 绘制地图
+            fig_map = px.scatter_mapbox(
+                filtered_map_df, 
+                lat="latitude", 
+                lon="longitude", 
+                color=color_col,
+                color_discrete_map=color_map,
+                color_continuous_scale=scale,
+                
+                size="price" if map_mode == "Price ($)" else None,
+                size_max=12,
+                opacity=0.7,
+                hover_name="id",
+                hover_data={
+                    "latitude": False, "longitude": False, 
+                    "Quadrant": True, "price": True, "Value Score": ":.2f"
+                },
+                zoom=10, 
+                height=600
+            )
+
+            fig_map.update_layout(
+                mapbox_style="carto-positron", 
+                margin={"r":0,"t":0,"l":0,"b":0},
+                legend=dict(
+                    yanchor="top", y=0.99, xanchor="left", x=0.01,
+                    bgcolor="rgba(255, 255, 255, 0.8)",
+                    font=dict(size=16),
+                    title=dict(font=dict(size=18)),
+                    itemsizing='constant'
+                )
+            )
+
+            st.plotly_chart(fig_map, use_container_width=True)
+            
+            # 5. 添加动态的一句话总结 (Insight)
+            count = len(filtered_map_df)
+            st.info(f"Showing **{count}** listings in: {', '.join(selected_quadrants)}")
+
     else:
-        st.warning("⚠️ Geo-coordinates (latitude/longitude) not found in the dataset. Please merge coordinate data.")
-
+        st.warning("Coordinates missing. Please merge latitude/longitude data.")
     # RPI vs EI Scatter
     if ("RPI" in df_overview.columns) and ("EI" in df_overview.columns):
         st.subheader("Market Positioning: RPI vs EI")
@@ -241,35 +317,6 @@ if page == "Overview":
 
     st.markdown("---")
 
-    if rpi_col and ("neighbourhood_group" in df_overview.columns):
-        c1, c2 = st.columns(2)
-        with c1:
-            st.subheader(f"RPI Boxplot by Borough")
-            fig_box = px.box(
-                df_overview,
-                x="neighbourhood_group",
-                y=rpi_col,
-                points="outliers",
-                labels={"neighbourhood_group": "Borough", rpi_col: "RPI"},
-                height=400,
-            )
-            st.plotly_chart(fig_box, use_container_width=True)
-        with c2:
-            st.subheader("RPI Density Curve")
-            fig_hist = px.histogram(
-                df_overview,
-                x=rpi_col,
-                color="neighbourhood_group",
-                marginal="violin",
-                opacity=0.6,
-                histnorm="probability density",
-                barmode="overlay",
-                height=400,
-            )
-            st.plotly_chart(fig_hist, use_container_width=True)
-            # ... (前面的代码保持不变) ...
-
-    st.markdown("---")
 
     # 检查是否有必要的数据列
     rpi_col_to_use = "RPI_by_neigh_group" if "RPI_by_neigh_group" in df_overview.columns else ("RPI" if "RPI" in df_overview.columns else None)
@@ -343,7 +390,7 @@ if page == "Overview":
             st.plotly_chart(fig_hist, use_container_width=True)
 
     else:
-        st.info("RPI or neighbourhood_group missing — ch
+        st.info("RPI or neighbourhood_group missing — chart not available.")
     
 
 # --------------------------
