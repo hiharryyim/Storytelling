@@ -167,6 +167,49 @@ if page == "Overview":
             st.metric("Hidden Gems", f"{hidden_gems} ({ratio:.1%})")
 
     st.markdown("---")
+    # ... (Overview 页面之前的代码) ...
+
+    # --- 地图可视化部分 ---
+    st.markdown("---")
+    st.subheader("📍 Geographic Distribution of Listings")
+    st.caption("Detailed map of listings. Color represents Price intensity.")
+
+    # 检查经纬度列是否存在，防止报错
+    if "latitude" in df_overview.columns and "longitude" in df_overview.columns:
+        
+        # 使用 Plotly Mapbox (不需要 API Key 的方案)
+        fig_map = px.scatter_mapbox(
+            df_overview, 
+            lat="latitude", 
+            lon="longitude", 
+            color="price",                  # 颜色深浅代表价格
+            size="price",                   # 点的大小也代表价格
+            size_max=12,                    # 限制最大点的大小，防止遮挡
+            hover_name="id",                # 鼠标悬停显示 ID
+            # 悬停显示更多关键信息：残差、房型、评分
+            hover_data={
+                "latitude": False, 
+                "longitude": False,
+                "room_type": True,
+                "price": True,
+                "residual": True,           # 核心商业指标
+                "rating": True
+            },
+            color_continuous_scale="Jet",   # 使用鲜艳的色阶 (Jet 或 Viridis)
+            zoom=10, 
+            height=600
+        )
+
+        # 设置地图样式为 OpenStreetMap (无需 Token，加载快)
+        fig_map.update_layout(
+            mapbox_style="open-street-map", 
+            margin={"r":0,"t":0,"l":0,"b":0}
+        )
+
+        st.plotly_chart(fig_map, use_container_width=True)
+    
+    else:
+        st.warning("⚠️ Geo-coordinates (latitude/longitude) not found in the dataset. Please merge coordinate data.")
 
     # RPI vs EI Scatter
     if ("RPI" in df_overview.columns) and ("EI" in df_overview.columns):
