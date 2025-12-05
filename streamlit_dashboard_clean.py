@@ -345,8 +345,8 @@ if page == "Overview":
         # 使用 st.info 或 st.markdown 展示结论
         st.info(f"""
         **💡 Key Takeaways:**
-        - **Highest Premium:** **{most_expensive}** has the highest median RPI ({highest_median:.2f}), suggesting listings here generally command a price premium.
-        - **Best Value Zone:** **{most_value}** has the lowest median RPI ({lowest_median:.2f}), indicating more undervalued listings relative to the model.
+        - **Highest Premium:** **{most_expensive}** has the highest median RPI ({highest_median:.2f})
+        - **Best Value Zone:** **{most_value}** has the lowest median RPI ({lowest_median:.2f})
         - **Most Volatile:** **{most_volatile}** shows the widest price variation, implying a mix of extreme bargains and overpriced units.
         """)
 
