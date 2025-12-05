@@ -343,12 +343,12 @@ if page == "Overview":
         st.subheader("Market Analysis by Borough")
         
         # 使用 st.info 或 st.markdown 展示结论
-        st.info(f"""
-        **💡 Key Takeaways:**
-        - **Highest Premium:** **{most_expensive}** has the highest median RPI ({highest_median:.2f})
-        - **Best Value Zone:** **{most_value}** has the lowest median RPI ({lowest_median:.2f})
-        - **Most Volatile:** **{most_volatile}** shows the widest price variation, implying a mix of extreme bargains and overpriced units.
-        """)
+        # st.info(f"""
+        # **💡 Key Takeaways:**
+        # - **Highest Premium:** **{most_expensive}** has the highest median RPI ({highest_median:.2f})
+        # - **Best Value Zone:** **{most_value}** has the lowest median RPI ({lowest_median:.2f})
+        # - **Most Volatile:** **{most_volatile}** shows the widest price variation, implying a mix of extreme bargains and overpriced units.
+        # """)
 
         # --- 3. 图表展示 ---
         c1, c2 = st.columns(2)
