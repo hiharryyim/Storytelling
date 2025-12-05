@@ -463,11 +463,11 @@ elif page == "Borough Explorer":
 
             c_left, c_right = st.columns(2)
             with c_left:
-                st.write("**Top Undervalued (Good Deals)**")
+                st.write("**Top Undervalued **")
                 st.dataframe(df_under[col_disp].style.format({"price": "${:.0f}", "price_pred": "${:.0f}", "residual": "${:.1f}", "pct_residual": "{:.1%}", "RPI": "{:.2f}"}))
             
             with c_right:
-                st.write("**Top Overpriced (Premium)**")
+                st.write("**Top Overpriced**")
                 st.dataframe(df_over[col_disp].style.format({"price": "${:.0f}", "price_pred": "${:.0f}", "residual": "${:.1f}", "pct_residual": "{:.1%}", "RPI": "{:.2f}"}))
                 
     else:
