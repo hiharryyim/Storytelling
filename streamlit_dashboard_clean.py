@@ -376,7 +376,7 @@ if page == "Overview":
                 df_overview,
                 x=rpi_col_to_use,
                 color="neighbourhood_group",
-                marginal="violin", # 顶部增加小提琴图，增强视觉信息
+                marginal="violin",
                 opacity=0.6,
                 histnorm="probability density",
                 barmode="overlay",
@@ -454,7 +454,7 @@ elif page == "Borough Explorer":
 
         with tab2:
             st.subheader("Market Inefficiencies")
-            n_show = st.number_input("Rows to show", 5, 10, 50)
+            n_show = st.number_input("Rows to show", 5, 50, 10)
             
             df_under = df_b.sort_values("residual").head(n_show) 
             df_over = df_b.sort_values("residual", ascending=False).head(n_show) 
